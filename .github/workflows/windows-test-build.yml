@@ -24,6 +24,7 @@ jobs:
           cache: pip
       - name: Abhängigkeiten installieren
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           python -m pip install -r requirements.txt
           python -m pip install pytest==8.3.5 pyinstaller==6.12.0
           python -m pip check
@@ -39,6 +40,7 @@ jobs:
       - name: Lizenzen und Quellcode beilegen
         shell: pwsh
         run: |
+          $PSNativeCommandUseErrorActionPreference = $true
           python tools/collect_licenses.py
           python tools/collect_sources.py
           python -m pip freeze | Out-File -Encoding utf8 dist/Precision-CAD/build-environment.txt
@@ -57,6 +59,7 @@ jobs:
           name: Windows-Testbild
           path: |
             smoke.png
+            smoke-ui.png
             smoke-stdout.log
             smoke-stderr.log
           if-no-files-found: ignore

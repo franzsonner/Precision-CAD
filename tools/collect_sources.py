@@ -11,6 +11,7 @@ out.mkdir(parents=True, exist_ok=True)
 qt = version('PySide6')
 occt = '.'.join(version('cadquery-ocp').split('.')[:3]).replace('.', '_')
 archives = {
+    'qtsvg.zip': f'https://github.com/qt/qtsvg/archive/refs/tags/v{qt}.zip',
     'qtbase.zip': f'https://github.com/qt/qtbase/archive/refs/tags/v{qt}.zip',
     'pyside-setup.zip': f'https://github.com/pyside/pyside-setup/archive/refs/tags/v{qt}.zip',
     'occt.zip': f'https://github.com/Open-Cascade-SAS/OCCT/archive/refs/tags/V{occt}.zip',

@@ -5,3 +5,5 @@ build/
 dist/
 *.spec
 smoke.png
+smoke-ui.png
+smoke-*.log

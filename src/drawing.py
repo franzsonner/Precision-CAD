@@ -20,7 +20,14 @@ def sheet_svg(part):
              ('Oben (Blick entlang −Z)', (0, 0, 1), 50, 425)]
     for label, direction, x, y in views:
         text(x, y - 12, label)
-        svg = ET.fromstring(getSVG(part.shape, {
+        # OCCT chooses a rotated default X axis for the front/side projector.
+        # Rotate the input around the viewing axis so Z stays vertical on paper.
+        shape = part.shape
+        if direction == (0, -1, 0):
+            shape = shape.rotate((0, 0, 0), (0, 1, 0), 90)
+        elif direction == (1, 0, 0):
+            shape = shape.rotate((0, 0, 0), (1, 0, 0), 90)
+        svg = ET.fromstring(getSVG(shape, {
             'width': 450, 'height': 240, 'marginLeft': 45, 'marginTop': 25,
             'projectionDir': direction, 'showAxes': False, 'showHidden': True,
             'strokeColor': (20, 30, 40), 'hiddenColor': (130, 130, 130),

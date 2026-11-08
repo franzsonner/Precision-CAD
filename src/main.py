@@ -76,6 +76,7 @@ class MainWindow(QMainWindow):
         self.viewer = QtInteractor(root)
         layout.addWidget(self.viewer, 4)
         self.viewer.enable_trackball_style()
+        self.viewer.enable_parallel_projection()
         self.viewer.set_background("#f3f6fa")
         self.viewer.add_axes()
 
@@ -126,7 +127,7 @@ class MainWindow(QMainWindow):
         self.viewer.clear()
         self.viewer.add_axes()
         for part in self.parts:
-            vertices, triangles = part.shape.tessellate(0.5)
+            vertices, triangles = part.shape.tessellate(0.1)
             if not vertices or not triangles:
                 continue
             points = [[v.x, v.y, v.z] for v in vertices]
@@ -134,7 +135,11 @@ class MainWindow(QMainWindow):
             for tri in triangles:
                 faces.extend([3, *tri])
             mesh = pv.PolyData(points, faces)
-            self.viewer.add_mesh(mesh, show_edges=True, color="#9ebfe3")
+            self.viewer.add_mesh(mesh, color="#9ebfe3", smooth_shading=True, split_sharp_edges=True)
+            edges = mesh.extract_feature_edges(feature_angle=35, boundary_edges=True,
+                                               non_manifold_edges=False, feature_edges=True, manifold_edges=False)
+            if edges.n_points:
+                self.viewer.add_mesh(edges, color="#31475f", line_width=1.5)
         if reset:
             self.viewer.reset_camera()
 
@@ -197,6 +202,7 @@ def main():
                 window.viewer.camera.azimuth += 30
                 window.viewer.render()
                 window.viewer.screenshot(str(Path.cwd() / "smoke.png"))
+                window.grab().save(str(Path.cwd() / "smoke-ui.png"))
                 window.viewer.close()
                 window.close()
                 app.exit(0)
