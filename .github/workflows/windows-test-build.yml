@@ -1,0 +1,35 @@
+name: Windows-Testbuild (experimentell)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "requirements.txt"
+      - ".github/workflows/windows-test-build.yml"
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Abhaengigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller
+      - name: Python-Syntax pruefen
+        run: python -m compileall -q src
+      - name: Portable Windows-Anwendung erstellen
+        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name Precision-CAD --collect-all pyvista --collect-all pyvistaqt --collect-all vtkmodules --collect-all cadquery src/main.py
+      - name: Build-Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Precision-CAD-Windows-experimentell
+          path: dist/Precision-CAD/
+          if-no-files-found: error
