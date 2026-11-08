@@ -11,6 +11,9 @@ out.mkdir(parents=True, exist_ok=True)
 qt = version('PySide6')
 occt = '.'.join(version('cadquery-ocp').split('.')[:3]).replace('.', '_')
 archives = {
+    'libraw.zip': 'https://github.com/LibRaw/LibRaw/archive/refs/tags/0.21.5.zip',
+    'freeimage.zip': 'https://downloads.sourceforge.net/project/freeimage/Source%20Distribution/3.18.0/FreeImage3180.zip',
+    'ocp-build-system.zip': 'https://github.com/CadQuery/ocp-build-system/archive/refs/tags/v7.9.3.1.1.zip',
     'qtsvg.zip': f'https://github.com/qt/qtsvg/archive/refs/tags/v{qt}.zip',
     'qtbase.zip': f'https://github.com/qt/qtbase/archive/refs/tags/v{qt}.zip',
     'pyside-setup.zip': f'https://github.com/pyside/pyside-setup/archive/refs/tags/v{qt}.zip',

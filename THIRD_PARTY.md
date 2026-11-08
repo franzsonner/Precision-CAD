@@ -39,3 +39,23 @@ entpackten `_internal`-Ordner ersetzen. Vorher eine Kopie des Ordners anlegen.
 
 Die automatisch kopierten Lizenztexte sind Bestandteil des Builds. Zusätzliche
 Qt-Module dürfen nur aufgenommen werden, wenn deren Lizenz die Weitergabe erlaubt.
+
+## Native Bild- und Laufzeitbibliotheken
+
+OCP bringt zusätzlich FreeImage (FIPL), FreeType (FTL), LibRaw (LGPL-2.1),
+OpenEXR/Imath, TIFF, JPEG, PNG, WebP, OpenJPEG/OpenJPH, Lerc, LCMS,
+libdeflate, XZ, zlib, Zstd und Microsoft-Laufzeit-DLLs mit.
+Die Originalhinweise und zugehörigen Conda-Forge-Rezepte stehen im Archiv
+`licenses/additional-notices/native-notices.zip`; dessen Inventar nennt die
+Herkunft der Hinweispakete. Diese Versionsnummern bezeichnen die Hinweispakete,
+nicht eine Behauptung über alle DLL-Versionen. FreeImage und LibRaw werden
+unter FIPL bzw. LGPL verwendet. Die jeweiligen Quellarchive sowie die
+OCP-Build-Rezepte einschließlich Patches liegen ebenfalls unter `sources/`.
+Die LGPL-Austauschrechte gelten auch für LibRaw.
+
+Portions of this software are copyright © The FreeType Project
+(https://freetype.org). All rights reserved. Siehe `FreeType-FTL.txt`.
+
+Unbenutzte QtDataVisualization-Module werden ausdrücklich vom Paketbau
+ausgeschlossen. Die Anwendung benötigt QtCore, QtGui, QtWidgets, QtNetwork,
+QtOpenGL/QtOpenGLWidgets und QtSvg/QtSvgWidgets.

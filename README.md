@@ -69,6 +69,9 @@ Actions prüft Volumen, Maßänderungen, ungültige Maße und STEP-Rundlauf mit 
 Körpern. Danach startet die **gepackte Windows-EXE**, erzeugt und ändert Geometrie,
 speichert/öffnet STEP, erzeugt eine PDF-Zeichnung und rendert eine gedrehte Ansicht als `Windows-Testbild`.
 Der Anwendungsdownload wird erst nach bestandenem Starttest hochgeladen.
+Der Windows-Runner verwendet Mesa als Software-OpenGL-Treiber für diesen Test.
+Mesa wird nicht im Download mitgeliefert; der eigene PC benötigt einen geeigneten
+Grafiktreiber. Die Prüfung echter Windows-11-Grafiktreiber bleibt ein To-do.
 
 ## Open Source und Lizenzen
 
