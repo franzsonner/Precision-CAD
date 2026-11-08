@@ -11,7 +11,7 @@ for dist in distributions():
     name = dist.metadata['Name']
     target = out / name
     target.mkdir(exist_ok=True)
-    (target / 'METADATA.txt').write_text(str(dist.metadata), encoding='utf-8')
+    (target / 'METADATA.txt').write_text(dist.read_text('METADATA') or dist.read_text('PKG-INFO') or '', encoding='utf-8')
     for entry in dist.files or []:
         if any(word in str(entry).lower() for word in ('license', 'copying', 'copyright', 'notice')):
             source = Path(dist.locate_file(entry))
@@ -27,3 +27,14 @@ for dist in distributions():
 (out / 'inventory.json').write_text(json.dumps(inventory, indent=2), encoding='utf-8')
 for file in ('LICENSE', 'THIRD_PARTY.md', 'README.md', 'requirements.txt'):
     shutil.copy2(file, out.parent / file)
+
+# The bundled interpreter also retains its original PSF license.
+import sys
+for location in (Path(sys.base_prefix) / 'LICENSE.txt', Path(sys.base_prefix) / 'lib' / f'python{sys.version_info.major}.{sys.version_info.minor}' / 'LICENSE.txt'):
+    if location.exists():
+        shutil.copy2(location, out / 'PYTHON-LICENSE.txt')
+        break
+else:
+    raise RuntimeError('Python license not found')
+
+shutil.copytree('third_party', out / 'additional-notices', dirs_exist_ok=True)

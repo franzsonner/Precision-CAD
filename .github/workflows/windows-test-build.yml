@@ -31,7 +31,7 @@ jobs:
         run: python -m pytest -q
       - name: Portable Anwendung erstellen
         run: >-
-          python -m PyInstaller --noconfirm --clean --windowed --onedir
+          python -m PyInstaller --noconfirm --clean --console --onedir
           --name Precision-CAD --collect-all pyvista --collect-all pyvistaqt
           --collect-all vtkmodules --collect-all cadquery --collect-all OCP
           --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide2
@@ -40,12 +40,13 @@ jobs:
         shell: pwsh
         run: |
           python tools/collect_licenses.py
+          python tools/collect_sources.py
           python -m pip freeze | Out-File -Encoding utf8 dist/Precision-CAD/build-environment.txt
           git archive --format=zip --output=dist/Precision-CAD/source.zip HEAD
       - name: Gepackte EXE starten und STEP-Rundlauf prüfen
         shell: pwsh
         run: |
-          $process = Start-Process -FilePath dist/Precision-CAD/Precision-CAD.exe -ArgumentList '--smoke-test' -PassThru
+          $process = Start-Process -FilePath dist/Precision-CAD/Precision-CAD.exe -ArgumentList '--smoke-test' -RedirectStandardOutput smoke-stdout.log -RedirectStandardError smoke-stderr.log -PassThru
           if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Starttest nach 120 Sekunden abgebrochen' }
           if ($process.ExitCode -ne 0) { throw "EXE-Starttest fehlgeschlagen: $($process.ExitCode)" }
           if (-not (Test-Path smoke.png)) { throw 'Kein gerendertes Testbild' }
@@ -54,7 +55,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Windows-Testbild
-          path: smoke.png
+          path: |
+            smoke.png
+            smoke-stdout.log
+            smoke-stderr.log
           if-no-files-found: ignore
       - name: Windows-Download hochladen
         uses: actions/upload-artifact@v4

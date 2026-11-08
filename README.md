@@ -2,7 +2,8 @@
 
 Einfache Desktop-CAD-Anwendung für Windows 11 x64 mit deutscher Oberfläche.
 Quader und Zylinder erzeugen, deren Maße ändern, die Ansicht drehen/zoomen sowie
-STEP-Dateien öffnen und speichern. Experimenteller Stand; keine produktive Freigabe.
+STEP-Dateien öffnen und speichern. A4-Zeichnungsübersichten mit drei Ansichten
+als PDF/SVG ausgeben. Experimenteller Stand; keine produktive Freigabe.
 
 ## Windows-Version herunterladen und starten
 
@@ -11,6 +12,9 @@ STEP-Dateien öffnen und speichern. Experimenteller Stand; keine produktive Frei
 3. Unten unter **Artifacts** `Precision-CAD-Windows-x64` herunterladen. Artefakte bleiben 30 Tage verfügbar. Bei Bedarf mit **Run workflow** neu bauen.
 4. ZIP über **Alle extrahieren** vollständig in einen beschreibbaren Ordner entpacken.
 5. `Precision-CAD.exe` im entpackten Ordner doppelklicken. `_internal` und `licenses` beim Programm belassen. Python muss nicht installiert sein.
+
+Während der Testversion öffnet sich zusätzlich eine Konsole mit Diagnosemeldungen.
+Sie schließt sich mit der Anwendung.
 
 Der Build ist nicht signiert. Windows kann den unbekannten Herausgeber melden.
 Vor dem Start Herkunft und erfolgreichen Build prüfen. Aktuelle Grafiktreiber mit
@@ -24,6 +28,25 @@ OpenGL-Unterstützung werden benötigt. Der erste Start kann etwas dauern.
 - Linke Maustaste ziehen: drehen; Mausrad: zoomen; Shift + linke Maustaste: verschieben. **Ansicht einpassen** zeigt alle Körper.
 - **STEP öffnen** fügt die Geometrie zur Bauteilliste hinzu. **STEP exportieren** speichert alle Körper als STEP.
 - Importierte STEP-Geometrie hat keine editierbaren Grundmaße. STEP speichert keine parametrische Historie; nach erneutem Öffnen sind auch exportierte Quader/Zylinder importierte Geometrie.
+
+## Erste technische Zeichnung
+
+1. Bauteil in der Liste auswählen.
+2. Oben den Reiter **Zeichnung** öffnen und **A4-Blatt / PDF / SVG** wählen.
+3. Die Vorschau zeigt Vorder-, Rechts- und Draufsicht mit verdeckten Kanten,
+   Gesamtabmessungen und bei erzeugten Zylindern den Durchmesser.
+4. **PDF speichern** erzeugt ein A4-Blatt im Querformat; **SVG speichern** eine
+   editierbare Vektorgrafik, z. B. für Inkscape.
+
+Die Ansichten sind einzeln eingepasst und haben keinen gemeinsamen festen Maßstab.
+Maße stehen als Tabelle neben den Ansichten. Einzelbemaßung mit Maßpfeilen,
+Toleranzen, Passungen, Schnitte und normgerechte Zeichnungsvorlagen fehlen noch.
+Das Blatt ist eine Übersicht, keine Fertigungsfreigabe.
+
+Die Oberfläche besitzt die Bereiche **Start**, **Ansicht** und **Zeichnung** sowie
+eine Bauteilliste und ein Maßfeld. Sie orientiert sich an üblichen CAD-Abläufen.
+Sie ist kein Solid-Edge-Klon und ersetzt zum Erlernen der konkreten Solid-Edge-
+Befehle und Bedienwege keine Übung in Solid Edge selbst.
 
 ## Entwicklung und Prüfung
 
@@ -44,7 +67,7 @@ python src/main.py --smoke-test
 Den vollständigen Paketbau beschreibt `.github/workflows/windows-test-build.yml`.
 Actions prüft Volumen, Maßänderungen, ungültige Maße und STEP-Rundlauf mit mehreren
 Körpern. Danach startet die **gepackte Windows-EXE**, erzeugt und ändert Geometrie,
-speichert/öffnet STEP und rendert eine gedrehte Ansicht als `Windows-Testbild`.
+speichert/öffnet STEP, erzeugt eine PDF-Zeichnung und rendert eine gedrehte Ansicht als `Windows-Testbild`.
 Der Anwendungsdownload wird erst nach bestandenem Starttest hochgeladen.
 
 ## Open Source und Lizenzen
@@ -59,6 +82,8 @@ Der Download enthält Lizenztexte, Copyright-Hinweise, genaue Paketversionen und
 - Manueller Bedienungstest auf einem echten Windows-11-PC mit verschiedenen Grafiktreibern; der automatisierte Runner ersetzt diesen Test nicht.
 - Installer, Codesignatur und dauerhafte Release-Downloads ergänzen.
 - Native Projektdatei zum Erhalten der Maße, Rückgängig/Wiederholen und Löschfunktion.
+- Zeichnungen: Maßpfeile, Maßstab, Toleranzen, Schnitte, Schriftfeld und DIN/ISO-Vorlagen.
 - Auswahl im 3D-Fenster, Positionieren, Skizzen und weitere Bearbeitungsfunktionen.
+- Spätere Ziele: Smartphone-Bedienung und KI-Hilfen für nachvollziehbare CAD-Befehle.
 - STEP-Baugruppenstruktur, Farben und Namen erhalten; derzeit Geometrieimport ohne Baugruppenbaum.
 - Änderungen gehen beim Schließen ohne Export verloren; noch keine Speicherwarnung.

@@ -1,4 +1,6 @@
 """Precision CAD desktop test application."""
+import os
+os.environ.setdefault("QT_API", "pyside6")
 import sys
 from pathlib import Path
 from model import Part, read_step, write_step
@@ -6,18 +8,42 @@ import pyvista as pv
 from pyvistaqt import QtInteractor
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QDoubleSpinBox, QLabel, QFileDialog, QMessageBox, QListWidget
+    QPushButton, QDoubleSpinBox, QLabel, QFileDialog, QMessageBox, QListWidget, QTabWidget
 )
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Precision CAD – Prototyp 0.1")
+        self.setWindowTitle("Precision CAD – Windows-Testversion 0.2")
         self.resize(1100, 720)
         self.parts = []
         root = QWidget()
         self.setCentralWidget(root)
-        layout = QHBoxLayout(root)
+        outer = QVBoxLayout(root)
+        ribbon = QTabWidget()
+        outer.addWidget(ribbon)
+        body = QWidget()
+        outer.addWidget(body, 1)
+        layout = QHBoxLayout(body)
+        for title, actions in [
+            ("Start", [("Quader", self.add_box), ("Zylinder", self.add_cylinder), ("STEP öffnen", self.open_step), ("STEP speichern", self.save_step)]),
+            ("Ansicht", [("Einpassen", lambda: self.viewer.reset_camera()),
+                         ("Isometrisch", lambda: self.viewer.view_isometric()),
+                         ("Vorne", lambda: self.viewer.view_xz()),
+                         ("Oben", lambda: self.viewer.view_xy()),
+                         ("Rechts", lambda: self.viewer.view_yz())]),
+            ("Zeichnung", [("A4-Blatt / PDF / SVG", self.open_drawing)]),
+        ]:
+            tab = QWidget()
+            bar = QHBoxLayout(tab)
+            for label, callback in actions:
+                button = QPushButton(label)
+                button.clicked.connect(callback)
+                bar.addWidget(button)
+            bar.addStretch()
+            ribbon.addTab(tab, title)
+        ribbon.setMaximumHeight(100)
+        self.statusBar().showMessage("Bauteil auswählen → Maße ändern → Anwenden | Zeichnung: A4-Vorschau und PDF/SVG")
         sidebar = QWidget()
         controls = QVBoxLayout(sidebar)
         controls.addWidget(QLabel("Maße in Millimetern"))
@@ -112,6 +138,17 @@ class MainWindow(QMainWindow):
         if reset:
             self.viewer.reset_camera()
 
+    def open_drawing(self):
+        row = self.items.currentRow()
+        if row < 0:
+            QMessageBox.information(self, "Zeichnung", "Bitte zuerst ein Bauteil auswählen.")
+            return
+        try:
+            from drawing_dialog import DrawingDialog
+            DrawingDialog(self.parts[row], self).exec()
+        except Exception as exc:
+            QMessageBox.critical(self, "Zeichnung", str(exc))
+
     def open_step(self):
         path, _ = QFileDialog.getOpenFileName(self, "STEP öffnen", "", "STEP (*.step *.stp)")
         if not path:
@@ -152,6 +189,11 @@ def main():
                     path = Path(folder) / "smoke.step"
                     write_step(window.parts, path)
                     assert read_step(path).shape.isValid()
+                    from drawing_dialog import DrawingDialog, write_pdf
+                    drawing = DrawingDialog(window.parts[0], window)
+                    assert b"svg" in drawing.svg
+                    write_pdf(drawing.svg, Path(folder) / "drawing.pdf")
+                    assert (Path(folder) / "drawing.pdf").stat().st_size > 1000
                 window.viewer.camera.azimuth += 30
                 window.viewer.render()
                 window.viewer.screenshot(str(Path.cwd() / "smoke.png"))

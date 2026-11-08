@@ -3,7 +3,10 @@
 Precision-CAD-Code: MIT, siehe LICENSE. Die Bibliotheken behalten ihre eigenen
 Lizenzen. Der Windows-Download enthält unter `licenses/` die Original-Lizenztexte,
 Copyright-Hinweise, Paket-Metadaten und eine versionsgenaue `inventory.json`.
-Diese Dateien müssen bei Weitergabe erhalten bleiben.
+Diese Dateien müssen bei Weitergabe erhalten bleiben. Im Ordner `sources/` liegen
+die passenden QtBase-, PySide-/Shiboken- und OCCT-Quellarchive einschließlich
+ihrer Copyright- und Drittanbieterhinweise; `manifest.json` nennt Herkunft und
+SHA-256. Die Lizenztexte stehen zusätzlich unter `licenses/additional-notices`.
 
 | Komponente | Lizenz | Quellcode |
 | --- | --- | --- |
