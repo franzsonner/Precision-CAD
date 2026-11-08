@@ -1,35 +1,65 @@
-name: Windows-Testbuild (experimentell)
+name: Windows-Testbuild
 
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - "src/**"
-      - "requirements.txt"
-      - ".github/workflows/windows-test-build.yml"
+  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   windows-build:
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 45
+    env:
+      QT_API: pyside6
+      PYTHONPATH: src
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
           cache: pip
-      - name: Abhaengigkeiten installieren
+      - name: Abhängigkeiten installieren
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pyinstaller
-      - name: Python-Syntax pruefen
-        run: python -m compileall -q src
-      - name: Portable Windows-Anwendung erstellen
-        run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name Precision-CAD --collect-all pyvista --collect-all pyvistaqt --collect-all vtkmodules --collect-all cadquery src/main.py
-      - name: Build-Artefakt hochladen
+          python -m pip install -r requirements.txt
+          python -m pip install pytest==8.3.5 pyinstaller==6.12.0
+          python -m pip check
+      - name: Geometrie und STEP testen
+        run: python -m pytest -q
+      - name: Portable Anwendung erstellen
+        run: >-
+          python -m PyInstaller --noconfirm --clean --windowed --onedir
+          --name Precision-CAD --collect-all pyvista --collect-all pyvistaqt
+          --collect-all vtkmodules --collect-all cadquery --collect-all OCP
+          --exclude-module PyQt5 --exclude-module PyQt6 --exclude-module PySide2
+          src/main.py
+      - name: Lizenzen und Quellcode beilegen
+        shell: pwsh
+        run: |
+          python tools/collect_licenses.py
+          python -m pip freeze | Out-File -Encoding utf8 dist/Precision-CAD/build-environment.txt
+          git archive --format=zip --output=dist/Precision-CAD/source.zip HEAD
+      - name: Gepackte EXE starten und STEP-Rundlauf prüfen
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath dist/Precision-CAD/Precision-CAD.exe -ArgumentList '--smoke-test' -PassThru
+          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Starttest nach 120 Sekunden abgebrochen' }
+          if ($process.ExitCode -ne 0) { throw "EXE-Starttest fehlgeschlagen: $($process.ExitCode)" }
+          if (-not (Test-Path smoke.png)) { throw 'Kein gerendertes Testbild' }
+      - name: Testbild hochladen
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Precision-CAD-Windows-experimentell
+          name: Windows-Testbild
+          path: smoke.png
+          if-no-files-found: ignore
+      - name: Windows-Download hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Precision-CAD-Windows-x64
           path: dist/Precision-CAD/
           if-no-files-found: error
+          retention-days: 30

@@ -1,7 +1,7 @@
-"""Precision CAD - early independent desktop prototype (not yet Windows-tested)."""
+"""Precision CAD desktop test application."""
 import sys
 from pathlib import Path
-import cadquery as cq
+from model import Part, read_step, write_step
 import pyvista as pv
 from pyvistaqt import QtInteractor
 from PySide6.QtWidgets import (
@@ -34,7 +34,8 @@ class MainWindow(QMainWindow):
             ("Zylinder erstellen", self.add_cylinder),
             ("STEP öffnen", self.open_step),
             ("STEP exportieren", self.save_step),
-            ("Projekt speichern (STEP)", self.save_step),
+            ("Maße auf Auswahl anwenden", self.resize_selected),
+            ("Ansicht einpassen", lambda: self.viewer.reset_camera()),
         ]:
             button = QPushButton(title)
             button.clicked.connect(fn)
@@ -42,10 +43,13 @@ class MainWindow(QMainWindow):
         self.items = QListWidget()
         controls.addWidget(QLabel("Bauteile"))
         controls.addWidget(self.items)
+        self.items.currentRowChanged.connect(self.select_part)
+        controls.addWidget(QLabel("Linke Maustaste: drehen\nMausrad: zoomen\nShift + linke Maustaste: verschieben"))
         controls.addStretch()
         layout.addWidget(sidebar, 1)
         self.viewer = QtInteractor(root)
         layout.addWidget(self.viewer, 4)
+        self.viewer.enable_trackball_style()
         self.viewer.set_background("#f3f6fa")
         self.viewer.add_axes()
 
@@ -54,22 +58,49 @@ class MainWindow(QMainWindow):
 
     def add_box(self):
         x, y, z = self.values()
-        self.append_part(cq.Workplane("XY").box(x, y, z).val(), "Quader")
+        self.create_part("Quader", (x, y, z))
 
     def add_cylinder(self):
         radius, _, height = self.values()
-        self.append_part(cq.Workplane("XY").circle(radius).extrude(height).val(), "Zylinder")
+        self.create_part("Zylinder", (radius, self.values()[1], height))
 
-    def append_part(self, shape, name):
-        self.parts.append(shape)
-        self.items.addItem(f"{name} {len(self.parts)}")
+    def create_part(self, kind, dimensions):
+        try:
+            self.append_part(Part.create(kind, dimensions))
+        except Exception as exc:
+            QMessageBox.critical(self, "Geometriefehler", str(exc))
+
+    def append_part(self, part):
+        self.parts.append(part)
+        self.items.addItem(f"{part.name} {len(self.parts)}")
+        self.items.setCurrentRow(len(self.parts) - 1)
         self.redraw()
 
-    def redraw(self):
+    def select_part(self, row):
+        part = self.parts[row] if row >= 0 else None
+        for field in self.sizes:
+            field.setEnabled(part is None or part.kind is not None)
+        if part and part.dimensions:
+            for field, value in zip(self.sizes, part.dimensions):
+                field.setValue(value)
+        self.sizes[1].setEnabled(part is None or part.kind == "Quader")
+
+    def resize_selected(self):
+        row = self.items.currentRow()
+        if row < 0 or self.parts[row].kind is None:
+            QMessageBox.information(self, "Maße", "Bitte einen erzeugten Quader oder Zylinder auswählen.")
+            return
+        try:
+            self.parts[row].resize(self.values())
+            self.redraw(reset=False)
+        except Exception as exc:
+            QMessageBox.critical(self, "Geometriefehler", str(exc))
+
+    def redraw(self, reset=True):
         self.viewer.clear()
         self.viewer.add_axes()
-        for shape in self.parts:
-            vertices, triangles = shape.tessellate(0.5)
+        for part in self.parts:
+            vertices, triangles = part.shape.tessellate(0.5)
             if not vertices or not triangles:
                 continue
             points = [[v.x, v.y, v.z] for v in vertices]
@@ -78,15 +109,15 @@ class MainWindow(QMainWindow):
                 faces.extend([3, *tri])
             mesh = pv.PolyData(points, faces)
             self.viewer.add_mesh(mesh, show_edges=True, color="#9ebfe3")
-        self.viewer.reset_camera()
+        if reset:
+            self.viewer.reset_camera()
 
     def open_step(self):
         path, _ = QFileDialog.getOpenFileName(self, "STEP öffnen", "", "STEP (*.step *.stp)")
         if not path:
             return
         try:
-            imported = cq.importers.importStep(path).val()
-            self.append_part(imported, Path(path).stem)
+            self.append_part(read_step(path))
         except Exception as exc:
             QMessageBox.critical(self, "Importfehler", str(exc))
 
@@ -99,17 +130,45 @@ class MainWindow(QMainWindow):
             return
         try:
             path = str(Path(path).with_suffix(".step"))
-            compound = cq.Compound.makeCompound(self.parts)
-            cq.exporters.export(compound, path, exportType="STEP")
+            write_step(self.parts, path)
             QMessageBox.information(self, "Gespeichert", path)
         except Exception as exc:
             QMessageBox.critical(self, "Exportfehler", str(exc))
 
 def main():
     app = QApplication(sys.argv)
+    if "--smoke-test" in sys.argv:
+        from PySide6.QtCore import QTimer
+        window = MainWindow()
+        window.show()
+        def check():
+            import tempfile
+            try:
+                window.add_box()
+                window.add_cylinder()
+                window.sizes[0].setValue(12)
+                window.resize_selected()
+                with tempfile.TemporaryDirectory() as folder:
+                    path = Path(folder) / "smoke.step"
+                    write_step(window.parts, path)
+                    assert read_step(path).shape.isValid()
+                window.viewer.camera.azimuth += 30
+                window.viewer.render()
+                window.viewer.screenshot(str(Path.cwd() / "smoke.png"))
+                window.viewer.close()
+                window.close()
+                app.exit(0)
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                app.exit(1)
+        QTimer.singleShot(1500, check)
+        return app.exec()
     window = MainWindow()
     window.show()
-    sys.exit(app.exec())
+    result = app.exec()
+    window.viewer.close()
+    return result
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
