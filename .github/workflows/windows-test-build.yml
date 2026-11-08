@@ -26,7 +26,7 @@ jobs:
         run: |
           $PSNativeCommandUseErrorActionPreference = $true
           python -m pip install -r requirements.txt
-          python -m pip install pytest==8.3.5 pyinstaller==6.12.0
+          python -m pip install pytest==8.3.5 pyinstaller==6.22.3
           python -m pip check
       - name: Geometrie und STEP testen
         run: python -m pytest -q
