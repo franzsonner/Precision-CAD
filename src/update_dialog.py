@@ -58,13 +58,13 @@ class UpdateDialog(QDialog):
         self.cancel.setEnabled(False)
         self.cancel.clicked.connect(self.cancel_update)
         layout.addWidget(self.cancel)
-        self.notice = QLabel('Vor dem Wechsel offene Änderungen als STEP exportieren.\nMaße und Bearbeitungshistorie werden beim Wechsel nicht übernommen.')
+        self.notice = QLabel('Vor dem Wechsel offene Änderungen als Projekt (.pcad) speichern.\nSTEP erhält nur Geometrie; nicht Maße und Bearbeitungsschritte.')
         self.notice.setWordWrap(True)
         layout.addWidget(self.notice)
 
     def perform(self):
         if self.installed:
-            answer = QMessageBox.question(self, 'Neue Version starten', 'Offene Änderungen zuerst als STEP exportieren. Maße und Verlauf werden nicht übernommen.\nNeue Version jetzt starten? Die aktuelle Anwendung bleibt geöffnet.')
+            answer = QMessageBox.question(self, 'Neue Version starten', 'Offene Änderungen zuerst als Projekt (.pcad) speichern. Die neue Version startet mit einem leeren Dokument.\nNeue Version jetzt starten? Die aktuelle Anwendung bleibt geöffnet.')
             if answer == QMessageBox.StandardButton.Yes:
                 try:
                     subprocess.Popen([str(self.installed)], cwd=str(self.installed.parent), close_fds=True)

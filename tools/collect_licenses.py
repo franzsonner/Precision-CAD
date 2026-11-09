@@ -38,3 +38,5 @@ else:
     raise RuntimeError('Python license not found')
 
 shutil.copytree('third_party', out / 'additional-notices', dirs_exist_ok=True)
+
+shutil.copytree('examples', out.parent / 'examples', dirs_exist_ok=True)

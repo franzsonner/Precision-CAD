@@ -104,12 +104,12 @@ jobs:
         with:
           tag_name: test-${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          name: Precision CAD – Testversion 0.4 (Build ${{ github.run_number }})
+          name: Precision CAD – Testversion 0.5 (Build ${{ github.run_number }})
           make_latest: true
           prerelease: false
           body: |
             Experimentelle Windows-x64-Testversion. ZIP vollständig entpacken und Precision-CAD.exe starten.
-            Mit Rückgängig/Wiederholen, Positionsänderung, Mehrfachauswahl und Update-Button.
+            Mit Bohrungen, Radien/Fasen, Flächenneigung, Projektdateien, Normteil-Auswahl und interaktiven Zeichnungsmaßen.
             Automatische Tests und Starttest der gepackten EXE wurden bestanden.
             Anleitung und offene Punkte: https://github.com/franzsonner/Precision-CAD#readme
           files: |
