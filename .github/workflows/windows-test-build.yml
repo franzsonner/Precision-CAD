@@ -99,6 +99,10 @@ jobs:
           zip -q -r ../Precision-CAD-Windows-x64.zip .
           cd ..
           sha256sum Precision-CAD-Windows-x64.zip > Precision-CAD-Windows-x64.zip.sha256
+      - name: Download-Archiv und SHA-256-Prüfsumme verifizieren
+        run: |
+          unzip -t Precision-CAD-Windows-x64.zip
+          sha256sum --check Precision-CAD-Windows-x64.zip.sha256
       - name: Geprüfte Testversion als GitHub-Release veröffentlichen
         uses: softprops/action-gh-release@v2
         with:
