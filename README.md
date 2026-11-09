@@ -1,7 +1,8 @@
 # Precision-CAD – Windows-Testversion
 
 Einfache Desktop-CAD-Anwendung für Windows 11 x64 mit deutscher Oberfläche.
-Quader und Zylinder erzeugen, deren Maße ändern, die Ansicht drehen/zoomen sowie
+Quader und Zylinder erzeugen, deren Maße und Position ändern, einzelne oder mehrere
+Bauteile verschieben, Änderungen rückgängig machen und die Ansicht drehen/zoomen sowie
 STEP-Dateien öffnen und speichern. A4-Zeichnungsübersichten mit drei Ansichten
 als PDF/SVG ausgeben. Experimenteller Stand; keine produktive Freigabe.
 
@@ -23,11 +24,29 @@ OpenGL-Unterstützung werden benötigt. Der erste Start kann etwas dauern.
 ## Bedienung
 
 - Maße sind Millimeter. **Länge / Radius** bedeutet beim Quader Länge, beim Zylinder Radius (halber Durchmesser). Breite gilt nur für Quader.
-- Maße eingeben, **Quader erstellen** oder **Zylinder erstellen** wählen. Körper liegen am Ursprung und können sich überlappen.
+- Maße eingeben, oben unter **Start → Quader** oder **Start → Zylinder** wählen. Neue Körper liegen zunächst am Ursprung. Die Bauteilliste und Positionsfelder befinden sich links; bei kleinen Fenstern im Bereich nach unten scrollen.
 - In **Bauteile** einen erzeugten Körper auswählen, Werte ändern und **Maße auf Auswahl anwenden** drücken. Die Kameraposition bleibt dabei erhalten.
+- **Rückgängig**: Schaltfläche oben oder Strg+Z. **Wiederholen**: Strg+Y oder Strg+Shift+Z. Erzeugen, STEP-Import, Maßänderungen und Bewegungen werden für die letzten 100 Änderungen dieser Sitzung gespeichert. Eine neue Änderung nach Rückgängig verwirft die Wiederholen-Historie.
+- Ein Bauteil in der Liste auswählen (orange markiert), unter **Position X / Y / Z** Werte eingeben und **Position übernehmen** drücken. Negative Koordinaten sind möglich. Maße lassen sich anschließend weiter ändern, ohne die Position zu verlieren.
+- Für eine gemeinsame Bewegung mit Strg/Shift mehrere Bauteile in der Liste auswählen. Unter **Verschiebung ΔX / ΔY / ΔZ** den gewünschten Weg eingeben und **Auswahl verschieben** drücken. Die Abstände bleiben erhalten; Rückgängig nimmt die gesamte gemeinsame Bewegung zurück. Es entsteht dabei keine dauerhafte Baugruppe oder geometrische Vereinigung.
 - Linke Maustaste ziehen: drehen; Mausrad: zoomen; Shift + linke Maustaste: verschieben. **Ansicht einpassen** zeigt alle Körper.
 - **STEP öffnen** fügt die Geometrie zur Bauteilliste hinzu. **STEP exportieren** speichert alle Körper als STEP.
 - Importierte STEP-Geometrie hat keine editierbaren Grundmaße. STEP speichert keine parametrische Historie; nach erneutem Öffnen sind auch exportierte Quader/Zylinder importierte Geometrie.
+
+## Beispiel: Zylinder auf einem Quader positionieren
+
+1. Quader mit Länge 50, Breite 30 und Höhe 20 erstellen. Sein Mittelpunkt liegt bei X=0, Y=0, Z=0; seine Oberseite liegt also bei Z=10.
+2. Zylinder erzeugen und in der Liste auswählen. Sein Bezugspunkt ist die Mitte der unteren Kreisfläche.
+3. Position X=12, Y=5, Z=10 eingeben und **Position übernehmen** drücken. Der Zylinder steht nun außermittig auf dem Quader.
+4. Radius oder Höhe des ausgewählten Zylinders ändern und **Maße auf Auswahl anwenden** drücken. Sein Bezugspunkt bleibt erhalten.
+5. Quader und Zylinder mit Strg auswählen und gemeinsam beispielsweise um ΔX=25 verschieben.
+
+Bei Quadern bezeichnet die Position den Mittelpunkt, bei Zylindern den Mittelpunkt
+der Grundfläche. Bei STEP-Importen ist sie ein zusätzlicher Versatz zur importierten
+Lage; die ursprüngliche importierte Lage wird als Position 0/0/0 angezeigt.
+Die Bauteilauswahl erfolgt bisher über die Liste, nicht durch Anklicken im 3D-Fenster.
+STEP speichert die verschobene Geometrie, aber weder die ursprünglichen Grundmaße
+noch die Bearbeitungshistorie. Auch eine gemeinsame Auswahl wird nicht gespeichert.
 
 ## Erste technische Zeichnung
 
@@ -65,8 +84,9 @@ python src/main.py --smoke-test
 ```
 
 Den vollständigen Paketbau beschreibt `.github/workflows/windows-test-build.yml`.
-Actions prüft Volumen, Maßänderungen, ungültige Maße und STEP-Rundlauf mit mehreren
-Körpern. Danach startet die **gepackte Windows-EXE**, erzeugt und ändert Geometrie,
+Actions prüft Volumen, Maßänderungen, Positionen, gemeinsame Bewegungen,
+Rückgängig/Wiederholen, ungültige Eingaben und STEP-Rundlauf mit mehreren
+Körpern. Danach startet die **gepackte Windows-EXE**, erzeugt und ändert Geometrie, prüft Einzel- und Gruppenbewegungen mit Rückgängig/Wiederholen,
 speichert/öffnet STEP, erzeugt eine PDF-Zeichnung und rendert eine gedrehte Ansicht als `Windows-Testbild`.
 Der Anwendungsdownload wird erst nach bestandenem Starttest hochgeladen.
 Der Windows-Runner verwendet Mesa als Software-OpenGL-Treiber für diesen Test.
@@ -84,9 +104,10 @@ Der Download enthält Lizenztexte, Copyright-Hinweise, genaue Paketversionen und
 
 - Manueller Bedienungstest auf einem echten Windows-11-PC mit verschiedenen Grafiktreibern; der automatisierte Runner ersetzt diesen Test nicht.
 - Installer, Codesignatur und dauerhafte Release-Downloads ergänzen.
-- Native Projektdatei zum Erhalten der Maße, Rückgängig/Wiederholen und Löschfunktion.
+- Native Projektdatei zum Erhalten von Maßen, Positionen und Bauteilstruktur; Löschfunktion.
+- Dauerhafte Baugruppen, Ausrichten an Flächen und geometrisches Vereinigen.
 - Zeichnungen: Maßpfeile, Maßstab, Toleranzen, Schnitte, Schriftfeld und DIN/ISO-Vorlagen.
-- Auswahl im 3D-Fenster, Positionieren, Skizzen und weitere Bearbeitungsfunktionen.
+- Auswahl und Verschieben direkt im 3D-Fenster, Drehen einzelner Körper, Skizzen und weitere Bearbeitungsfunktionen.
 - Spätere Ziele: Smartphone-Bedienung und KI-Hilfen für nachvollziehbare CAD-Befehle.
 - STEP-Baugruppenstruktur, Farben und Namen erhalten; derzeit Geometrieimport ohne Baugruppenbaum.
 - Änderungen gehen beim Schließen ohne Export verloren; noch keine Speicherwarnung.

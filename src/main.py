@@ -3,20 +3,33 @@ import os
 os.environ.setdefault("QT_API", "pyside6")
 import sys
 from pathlib import Path
-from model import Part, read_step, write_step
+from model import Part, Document, read_step, write_step
+from PySide6.QtGui import QAction, QKeySequence
+from PySide6.QtCore import Qt
 import pyvista as pv
 from pyvistaqt import QtInteractor
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QDoubleSpinBox, QLabel, QFileDialog, QMessageBox, QListWidget, QTabWidget
+    QPushButton, QDoubleSpinBox, QLabel, QFileDialog, QMessageBox, QListWidget, QTabWidget, QAbstractItemView, QScrollArea
 )
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Precision CAD – Windows-Testversion 0.2")
+        self.setWindowTitle("Precision CAD – Windows-Testversion 0.3")
         self.resize(1100, 720)
-        self.parts = []
+        self.document = Document()
+        toolbar = self.addToolBar("Bearbeiten")
+        self.undo_action = QAction("Rückgängig", self)
+        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+        self.undo_action.triggered.connect(self.undo)
+        toolbar.addAction(self.undo_action)
+        self.redo_action = QAction("Wiederholen", self)
+        self.redo_action.setShortcuts([QKeySequence("Ctrl+Y"), QKeySequence("Ctrl+Shift+Z")])
+        self.redo_action.triggered.connect(self.redo)
+        toolbar.addAction(self.redo_action)
+        self.undo_action.setEnabled(False)
+        self.redo_action.setEnabled(False)
         root = QWidget()
         self.setCentralWidget(root)
         outer = QVBoxLayout(root)
@@ -56,10 +69,6 @@ class MainWindow(QMainWindow):
             self.sizes.append(field)
             controls.addWidget(field)
         for title, fn in [
-            ("Quader erstellen", self.add_box),
-            ("Zylinder erstellen", self.add_cylinder),
-            ("STEP öffnen", self.open_step),
-            ("STEP exportieren", self.save_step),
             ("Maße auf Auswahl anwenden", self.resize_selected),
             ("Ansicht einpassen", lambda: self.viewer.reset_camera()),
         ]:
@@ -69,16 +78,111 @@ class MainWindow(QMainWindow):
         self.items = QListWidget()
         controls.addWidget(QLabel("Bauteile"))
         controls.addWidget(self.items)
-        self.items.currentRowChanged.connect(self.select_part)
+        self.items.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.items.setMinimumHeight(100)
+        self.items.setMaximumHeight(160)
+        controls.addWidget(QLabel("Strg/Shift: mehrere Bauteile auswählen"))
+        controls.addWidget(QLabel("Position X / Y / Z (mm), einzelnes Bauteil"))
+        self.positions = self.vector_fields(controls)
+        self.position_button = QPushButton("Position übernehmen")
+        self.position_button.clicked.connect(self.position_selected)
+        controls.addWidget(self.position_button)
+        controls.addWidget(QLabel("Verschiebung ΔX / ΔY / ΔZ (mm), gesamte Auswahl"))
+        self.deltas = self.vector_fields(controls)
+        move = QPushButton("Auswahl verschieben")
+        move.clicked.connect(self.move_selected)
+        controls.addWidget(move)
         controls.addWidget(QLabel("Linke Maustaste: drehen\nMausrad: zoomen\nShift + linke Maustaste: verschieben"))
         controls.addStretch()
-        layout.addWidget(sidebar, 1)
+        for label in sidebar.findChildren(QLabel):
+            label.setWordWrap(True)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(sidebar)
+        scroll.setMinimumWidth(290)
+        layout.addWidget(scroll, 1)
         self.viewer = QtInteractor(root)
         layout.addWidget(self.viewer, 4)
         self.viewer.enable_trackball_style()
         self.viewer.enable_parallel_projection()
         self.viewer.set_background("#f3f6fa")
         self.viewer.add_axes()
+        self.items.itemSelectionChanged.connect(self.selection_changed)
+        self.selection_changed()
+
+    @property
+    def parts(self):
+        return self.document.parts
+
+    def vector_fields(self, controls):
+        fields = []
+        for axis in "XYZ":
+            field = QDoubleSpinBox()
+            field.setRange(-100000, 100000)
+            field.setDecimals(3)
+            field.setPrefix(axis + ": ")
+            controls.addWidget(field)
+            fields.append(field)
+        return fields
+
+    def selected_rows(self):
+        return sorted(self.items.row(item) for item in self.items.selectedItems())
+
+    def refresh(self, rows=None, reset=False):
+        if rows is None:
+            rows = self.selected_rows()
+        self.items.blockSignals(True)
+        self.items.clear()
+        for index, part in enumerate(self.parts):
+            self.items.addItem(f"{part.name} {index + 1}")
+        for row in rows:
+            if 0 <= row < len(self.parts):
+                self.items.item(row).setSelected(True)
+        self.items.blockSignals(False)
+        self.undo_action.setEnabled(bool(self.document.undo_stack))
+        self.redo_action.setEnabled(bool(self.document.redo_stack))
+        self.selection_changed()
+        if reset:
+            self.viewer.reset_camera()
+
+    def undo(self):
+        self.document.undo()
+        self.refresh()
+
+    def redo(self):
+        self.document.redo()
+        self.refresh()
+
+    def selection_changed(self):
+        rows = self.selected_rows()
+        self.select_part(rows[0] if len(rows) == 1 else -1)
+        for field in self.positions:
+            field.setEnabled(len(rows) == 1)
+        self.position_button.setEnabled(len(rows) == 1)
+        if len(rows) == 1:
+            for field, value in zip(self.positions, self.parts[rows[0]].position):
+                field.setValue(value)
+        self.redraw(reset=False)
+
+    def position_selected(self):
+        rows = self.selected_rows()
+        if len(rows) != 1:
+            return
+        try:
+            self.document.position(rows[0], [field.value() for field in self.positions])
+            self.refresh(rows)
+        except Exception as exc:
+            QMessageBox.critical(self, "Position", str(exc))
+
+    def move_selected(self):
+        rows = self.selected_rows()
+        try:
+            self.document.translate(rows, [field.value() for field in self.deltas])
+            self.refresh(rows)
+            for field in self.deltas:
+                field.setValue(0)
+        except Exception as exc:
+            QMessageBox.critical(self, "Verschieben", str(exc))
 
     def values(self):
         return [f.value() for f in self.sizes]
@@ -98,10 +202,8 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Geometriefehler", str(exc))
 
     def append_part(self, part):
-        self.parts.append(part)
-        self.items.addItem(f"{part.name} {len(self.parts)}")
-        self.items.setCurrentRow(len(self.parts) - 1)
-        self.redraw()
+        self.document.add(part)
+        self.refresh([len(self.parts) - 1], reset=True)
 
     def select_part(self, row):
         part = self.parts[row] if row >= 0 else None
@@ -113,20 +215,22 @@ class MainWindow(QMainWindow):
         self.sizes[1].setEnabled(part is None or part.kind == "Quader")
 
     def resize_selected(self):
-        row = self.items.currentRow()
+        rows = self.selected_rows()
+        row = rows[0] if len(rows) == 1 else -1
         if row < 0 or self.parts[row].kind is None:
             QMessageBox.information(self, "Maße", "Bitte einen erzeugten Quader oder Zylinder auswählen.")
             return
         try:
-            self.parts[row].resize(self.values())
-            self.redraw(reset=False)
+            self.document.resize(row, self.values())
+            self.refresh([row])
         except Exception as exc:
             QMessageBox.critical(self, "Geometriefehler", str(exc))
 
     def redraw(self, reset=True):
         self.viewer.clear()
         self.viewer.add_axes()
-        for part in self.parts:
+        selected = self.selected_rows()
+        for index, part in enumerate(self.parts):
             vertices, triangles = part.shape.tessellate(0.1)
             if not vertices or not triangles:
                 continue
@@ -135,7 +239,7 @@ class MainWindow(QMainWindow):
             for tri in triangles:
                 faces.extend([3, *tri])
             mesh = pv.PolyData(points, faces)
-            self.viewer.add_mesh(mesh, color="#9ebfe3", smooth_shading=True, split_sharp_edges=True)
+            self.viewer.add_mesh(mesh, color="#f6b75d" if index in selected else "#9ebfe3", smooth_shading=True, split_sharp_edges=True)
             edges = mesh.extract_feature_edges(feature_angle=35, boundary_edges=True,
                                                non_manifold_edges=False, feature_edges=True, manifold_edges=False)
             if edges.n_points:
@@ -144,7 +248,8 @@ class MainWindow(QMainWindow):
             self.viewer.reset_camera()
 
     def open_drawing(self):
-        row = self.items.currentRow()
+        rows = self.selected_rows()
+        row = rows[0] if len(rows) == 1 else -1
         if row < 0:
             QMessageBox.information(self, "Zeichnung", "Bitte zuerst ein Bauteil auswählen.")
             return
@@ -190,6 +295,26 @@ def main():
                 window.add_cylinder()
                 window.sizes[0].setValue(12)
                 window.resize_selected()
+                window.positions[0].setValue(8)
+                window.positions[2].setValue(10)
+                window.position_selected()
+                assert window.parts[1].position == (8, 0, 10)
+                window.undo()
+                assert window.parts[1].position == (0, 0, 0)
+                window.redo()
+                assert window.parts[1].position == (8, 0, 10)
+                window.items.item(0).setSelected(True)
+                window.deltas[1].setValue(5)
+                window.move_selected()
+                assert window.parts[0].position == (0, 5, 0)
+                assert window.parts[1].position == (8, 5, 10)
+                window.undo()
+                assert window.parts[0].position == (0, 0, 0)
+                window.redo()
+                window.items.item(0).setSelected(False)
+                window.sizes[2].setValue(25)
+                window.resize_selected()
+                assert window.parts[1].position == (8, 5, 10)
                 with tempfile.TemporaryDirectory() as folder:
                     path = Path(folder) / "smoke.step"
                     write_step(window.parts, path)
