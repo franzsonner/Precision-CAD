@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Precision CAD – Windows-Testversion 0.3")
+        self.setWindowTitle("Precision CAD – Windows-Testversion 0.4")
         self.resize(1100, 720)
         self.document = Document()
         toolbar = self.addToolBar("Bearbeiten")
@@ -28,6 +28,10 @@ class MainWindow(QMainWindow):
         self.redo_action.setShortcuts([QKeySequence("Ctrl+Y"), QKeySequence("Ctrl+Shift+Z")])
         self.redo_action.triggered.connect(self.redo)
         toolbar.addAction(self.redo_action)
+        toolbar.addSeparator()
+        updates = QAction("Updates", self)
+        updates.triggered.connect(self.open_updates)
+        toolbar.addAction(updates)
         self.undo_action.setEnabled(False)
         self.redo_action.setEnabled(False)
         root = QWidget()
@@ -247,6 +251,10 @@ class MainWindow(QMainWindow):
         if reset:
             self.viewer.reset_camera()
 
+    def open_updates(self):
+        from update_dialog import UpdateDialog
+        UpdateDialog(self).exec()
+
     def open_drawing(self):
         rows = self.selected_rows()
         row = rows[0] if len(rows) == 1 else -1
@@ -291,6 +299,10 @@ def main():
         def check():
             import tempfile
             try:
+                from update_dialog import UpdateDialog
+                update_dialog = UpdateDialog(window)
+                assert update_dialog.button.text() == "Auf Updates prüfen"
+                update_dialog.close()
                 window.add_box()
                 window.add_cylinder()
                 window.sizes[0].setValue(12)

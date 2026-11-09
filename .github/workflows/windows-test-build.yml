@@ -48,6 +48,8 @@ jobs:
           python tools/collect_sources.py
           python -m pip freeze | Out-File -Encoding utf8 dist/Precision-CAD/build-environment.txt
           git archive --format=zip --output=dist/Precision-CAD/source.zip HEAD
+      - name: Versionskennung beilegen
+        run: python tools/write_build_info.py
       - name: Software-OpenGL für den Windows-Testrechner einrichten
         uses: ssciwr/setup-mesa-dist-win@v2
         with:
@@ -79,3 +81,38 @@ jobs:
           path: dist/Precision-CAD/
           if-no-files-found: error
           retention-days: 30
+
+  publish-update:
+    needs: windows-build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Precision-CAD-Windows-x64
+          path: portable
+      - name: Öffentliches Update-Paket erstellen
+        run: |
+          cd portable
+          zip -q -r ../Precision-CAD-Windows-x64.zip .
+          cd ..
+          sha256sum Precision-CAD-Windows-x64.zip > Precision-CAD-Windows-x64.zip.sha256
+      - name: Geprüfte Testversion als GitHub-Release veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Precision CAD – Testversion 0.4 (Build ${{ github.run_number }})
+          make_latest: true
+          prerelease: false
+          body: |
+            Experimentelle Windows-x64-Testversion. ZIP vollständig entpacken und Precision-CAD.exe starten.
+            Mit Rückgängig/Wiederholen, Positionsänderung, Mehrfachauswahl und Update-Button.
+            Automatische Tests und Starttest der gepackten EXE wurden bestanden.
+            Anleitung und offene Punkte: https://github.com/franzsonner/Precision-CAD#readme
+          files: |
+            Precision-CAD-Windows-x64.zip
+            Precision-CAD-Windows-x64.zip.sha256
+          fail_on_unmatched_files: true

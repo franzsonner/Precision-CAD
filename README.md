@@ -8,6 +8,15 @@ als PDF/SVG ausgeben. Experimenteller Stand; keine produktive Freigabe.
 
 ## Windows-Version herunterladen und starten
 
+**Direkter Download ohne GitHub-Anmeldung:**
+[Neueste Windows-Testversion als ZIP](https://github.com/franzsonner/Precision-CAD/releases/latest/download/Precision-CAD-Windows-x64.zip).
+Die [Release-Seite](https://github.com/franzsonner/Precision-CAD/releases/latest)
+enthält zusätzlich die SHA-256-Prüfsumme. Ein öffentliches Update erscheint erst,
+wenn Tests und Starttest der gepackten Windows-EXE bestanden sind.
+ZIP vollständig entpacken und `Precision-CAD.exe` starten.
+
+Alternativ stehen Build-Artefakte über GitHub Actions bereit:
+
 1. [GitHub Actions: Windows-Testbuild](https://github.com/franzsonner/Precision-CAD/actions/workflows/windows-test-build.yml) öffnen und bei GitHub anmelden.
 2. Den neuesten **grünen** Lauf für `main` öffnen. Bei fehlgeschlagenem/noch laufendem Build gibt es keinen geprüften neuen Download.
 3. Unten unter **Artifacts** `Precision-CAD-Windows-x64` herunterladen. Artefakte bleiben 30 Tage verfügbar. Bei Bedarf mit **Run workflow** neu bauen.
@@ -20,6 +29,27 @@ Sie schließt sich mit der Anwendung.
 Der Build ist nicht signiert. Windows kann den unbekannten Herausgeber melden.
 Vor dem Start Herkunft und erfolgreichen Build prüfen. Aktuelle Grafiktreiber mit
 OpenGL-Unterstützung werden benötigt. Der erste Start kann etwas dauern.
+
+## Updates direkt im Programm
+
+Ab Version 0.4: Oben **Updates** anklicken, dann **Auf Updates prüfen**.
+Bei einer neuen Version **Update herunterladen und installieren** wählen.
+Precision CAD lädt die öffentliche ZIP-Datei und ihre Prüfsumme selbst von GitHub,
+prüft SHA-256 und entpackt sie unter
+`%LOCALAPPDATA%\Precision-CAD\versions\test-…`. Es ist keine GitHub-Anmeldung
+und kein Administratorrecht nötig. Der Vorgang läuft im Hintergrund und lässt
+sich abbrechen. Bei Fehlern bleibt die bisherige Installation erhalten.
+
+Nach der Installation **Neue Version starten** wählen. Die bisherige Anwendung
+bleibt geöffnet, damit keine ungespeicherten Änderungen verloren gehen. Vor dem
+Wechsel Geometrie als STEP exportieren; Maße und Verlauf werden nicht übertragen.
+Für spätere Starts die EXE aus dem angezeigten neuen Versionsordner verwenden.
+Vorhandene alte Verknüpfungen zeigen weiterhin auf die alte Installation.
+Die alte Installation bleibt als Rückfallmöglichkeit erhalten.
+
+Versionen ohne Update-Button müssen einmal über den direkten ZIP-Link oben
+aktualisiert werden. Linux-Entwicklungsstarts können nach Releases suchen;
+die automatische Installation ist für Windows vorgesehen.
 
 ## Bedienung
 
@@ -89,6 +119,9 @@ Rückgängig/Wiederholen, ungültige Eingaben und STEP-Rundlauf mit mehreren
 Körpern. Danach startet die **gepackte Windows-EXE**, erzeugt und ändert Geometrie, prüft Einzel- und Gruppenbewegungen mit Rückgängig/Wiederholen,
 speichert/öffnet STEP, erzeugt eine PDF-Zeichnung und rendert eine gedrehte Ansicht als `Windows-Testbild`.
 Der Anwendungsdownload wird erst nach bestandenem Starttest hochgeladen.
+Danach veröffentlicht Actions den Build mit ZIP und SHA-256 als öffentliches GitHub-Release.
+Auch Update-Erkennung, Prüfsummenfehler, sichere ZIP-Pfade und Erhalt alter
+Installationen werden automatisch getestet.
 Der Windows-Runner verwendet Mesa als Software-OpenGL-Treiber für diesen Test.
 Mesa wird nicht im Download mitgeliefert; der eigene PC benötigt einen geeigneten
 Grafiktreiber. Die Prüfung echter Windows-11-Grafiktreiber bleibt ein To-do.
@@ -103,7 +136,7 @@ Der Download enthält Lizenztexte, Copyright-Hinweise, genaue Paketversionen und
 ## To-do / Grenzen
 
 - Manueller Bedienungstest auf einem echten Windows-11-PC mit verschiedenen Grafiktreibern; der automatisierte Runner ersetzt diesen Test nicht.
-- Installer, Codesignatur und dauerhafte Release-Downloads ergänzen.
+- Installer, Codesignatur und komfortable Startverknüpfung für installierte Updates ergänzen.
 - Native Projektdatei zum Erhalten von Maßen, Positionen und Bauteilstruktur; Löschfunktion.
 - Dauerhafte Baugruppen, Ausrichten an Flächen und geometrisches Vereinigen.
 - Zeichnungen: Maßpfeile, Maßstab, Toleranzen, Schnitte, Schriftfeld und DIN/ISO-Vorlagen.
