@@ -110,7 +110,8 @@ jobs:
           archive = "Precision-CAD-Windows-x64.zip"
           required = {"Precision-CAD.exe", "build-info.json", "source.zip"}
           with ZipFile(archive) as package:
-              names = set(package.namelist())
+              entries = package.namelist()
+              names = set(entries)
               missing = required - names
               if missing:
                   raise SystemExit(f"Release archive missing required files: {sorted(missing)}")
@@ -124,7 +125,7 @@ jobs:
               if unsafe:
                   raise SystemExit(f"Unsafe paths in release archive: {unsafe[:5]}")
           # Windows treats paths case-insensitively; reject ambiguous archive entries.
-          normalized = [name.replace("\\", "/").rstrip("/").casefold() for name in names]
+          normalized = [name.replace("\\", "/").rstrip("/").casefold() for name in entries]
           if len(normalized) != len(set(normalized)):
               raise SystemExit("Archive contains conflicting Windows paths")
           if any("\\" in name or ":" in name or name.startswith("/") for name in names):
