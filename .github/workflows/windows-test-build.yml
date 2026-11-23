@@ -123,6 +123,13 @@ jobs:
               unsafe = [name for name in names if PurePosixPath(name).is_absolute() or ".." in PurePosixPath(name).parts]
               if unsafe:
                   raise SystemExit(f"Unsafe paths in release archive: {unsafe[:5]}")
+          # Windows treats paths case-insensitively; reject ambiguous archive entries.
+          normalized = [name.replace("\\", "/").rstrip("/").casefold() for name in names]
+          if len(normalized) != len(set(normalized)):
+              raise SystemExit("Archive contains conflicting Windows paths")
+          if any("\\" in name or ":" in name or name.startswith("/") for name in names):
+              raise SystemExit("Archive contains invalid Windows paths")
+
           print("Required release files and safe archive paths verified")
           PY
       - name: Geprüfte Testversion als GitHub-Release veröffentlichen
